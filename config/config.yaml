@@ -1,0 +1,140 @@
+ui: # user interface
+  default_lookback_hours: 12
+  update_interval_ms: 1000
+  axis_font_color: "#222"
+
+inference_api:
+  host: localhost
+  port: 5001
+  endpoint: /run-inference
+
+
+data_manager:
+  raw_data_folder: 'data/raw_data/Mendeley_data/'
+  prod_data_folder: 'data/raw_data/'
+  monitoring_data_folder: 'data/monitoring/'
+  raw_database_name: 'raw_data.parquet.gzip'
+  prod_database_name: 'data_first40columns.csv'
+  monitoring_database_name: 'monitoring_data.parquet.gzip'
+  real_time_data_prod_name: 'real_time_data_prod.parquet'
+  real_time_prediction_data_name: 'real_time_prediction.parquet'
+
+
+pipeline_runner:
+  batch_size: 30
+  model_path: 'trained_catboost_model'
+  first_timestamp: '2012-08-07 12:00:00'
+  last_timestamp: '2012-12-31 23:00:00'
+  time_increment: '1h'
+
+preprocessing:
+
+  faulty_batch_numbers:
+    [91,92,93,94,95,96,97,98,99,100]
+
+  column_mapping:
+    'carbon dioxide percent in off-gas(CO2outgas:%)': 'co2_percent'
+    'Oxygen in percent in off-gas(O2:O2  (%))': 'oxygen_percent'
+    'Dissolved oxygen concentration(DO2:mg/L)': 'dissolved_oxygen_concentration'
+    'Vessel Weight(Wt:Kg)': 'vessel_weight'
+    'pH(pH:pH)': 'pH'
+    'Temperature(T:K)': 'temperature'
+    '2400' : 'raman_spectra'
+    'Aeration rate(Fg:L/h)' : 'aeration_rate'
+    'PAA flow(Fpaa:PAA flow (L/h))' : 'paa_flow'
+    'Offline Biomass concentratio(X_offline:X(g L^{-1}))' : 'biomass_concentration'
+    'Offline Penicillin concentration(P_offline:P(g L^{-1}))' : 'pennicilin_concentration'
+    '2-PAT control(PAT_ref:PAT ref)': 'batch_number'
+    'Sugar feed rate(Fs:L/h)': 'substrate_flow_rate'
+   
+
+
+  input_features: [
+    'co2_percent','oxygen_percent','dissolved_oxygen_concentration','vessel_weight',
+      'pH','temperature','raman_spectra','aeration_rate','paa_flow' ,'batch_number',
+      'substrate_flow_rate'
+  ]
+
+  input_features_drift_report: [
+    'co2_percent','oxygen_percent','dissolved_oxygen_concentration','vessel_weight',
+    'pH','temperature','raman_spectra','aeration_rate','paa_flow' ,
+    'substrate_flow_rate'
+  ]
+
+
+  target_features_raw: 
+    ['Offline Penicillin concentration(P_offline:P(g L^{-1}))','Offline Biomass concentratio(X_offline:X(g L^{-1}))']
+
+  targets_renamed:
+    ['biomass_concentration', 'pennicilin_concentration']
+
+
+feature_engineering:
+  lag_params:
+    'co2_percent': [1, 2, 3, 4, 5]
+    'oxygen_percent': [1, 2, 3, 4, 5]
+    'dissolved_oxygen_concentration': [1, 2, 3, 4, 5]
+    'vessel_weight': [1, 2, 3, 4, 5]
+    'pH': [1, 2, 3, 4, 5]
+    'temperature': [1, 2, 3, 4, 5]
+    'raman_spectra': [1,2,3,4,5]
+    'aeration_rate' : [1,2,3,4,5]
+    'paa_flow' : [1,2,3,4,5]
+
+  delta_params:
+    'co2_percent': [1, 2, 3, 4, 5]
+    'oxygen_percent': [1, 2, 3, 4, 5]
+    'dissolved_oxygen_concentration': [1, 2, 3, 4, 5]
+    'vessel_weight': [1, 2, 3, 4, 5]
+    'pH': [1, 2, 3, 4, 5]
+    'temperature': [1, 2, 3, 4, 5]
+    'raman_spectra': [1,2,3,4,5]
+    'aeration_rate' : [1,2,3,4,5]
+    'paa_flow' : [1,2,3,4,5]
+
+  targets_interpolate:
+    ['biomass_concentration', 'pennicilin_concentration']
+
+  batch_numbers_drift_monitoring:
+    [80,81,82,83,84,85,86,87,88,89,90]
+
+
+monitoring:
+  method: 'wasserstein'
+
+
+  
+
+
+training:
+  target_params:
+    shift_period: 2
+    target_column: 'pennicilin_concentration_interpolated'
+    new_target_name: 'target_pennicilin'
+  train_fraction: 0.76
+  non_training_columns : ['biomass_concentration','pennicilin_concentration','batch_number','pennicilin_concentration_interpolated','biomass_concentration_interpolated']
+  iterations: 100
+  loss_function: RMSE
+  cv_threshold: 0.27
+  verbose: 0
+  early_stopping_rounds: 100
+  random_state: 42
+  mlflow_name: "workspace.default.catboost_model"
+  mlflow_ui_url: "http://localhost:5000"
+  mlflow_model_alias: 'Staging'
+
+
+  optuna:
+    n_trials: 25
+    search_space:
+      learning_rate:
+        low: 0.01
+        high: 0.2
+        log: false
+      depth:
+        low: 3
+        high: 8
+      l2_leaf_reg:
+        low: 0.5
+        high: 5
+        log: false
