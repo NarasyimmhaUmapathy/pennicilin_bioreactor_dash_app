@@ -1,0 +1,11 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${_IMAGE}', '-f', 'web_app/test.Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_IMAGE}']
+
+substitutions:
+  _IMAGE: 'europe-west1-docker.pkg.dev/total-method-473207-e5/ml-apps/penicillin-web-app:multistage-build'
+
+images:
+  - '${_IMAGE}'

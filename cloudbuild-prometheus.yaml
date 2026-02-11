@@ -1,0 +1,18 @@
+substitutions:
+  _REGION: europe-west1
+
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/ml-apps/prometheus-cloudrun:latest',
+        '-f', 'prometheus_monitoring/prometheus.Dockerfile',
+        '.'
+      ]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/ml-apps/prometheus-cloudrun:latest']
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/ml-apps/prometheus-cloudrun:latest'
