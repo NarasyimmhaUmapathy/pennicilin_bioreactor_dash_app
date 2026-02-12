@@ -1,0 +1,88 @@
+stages:
+  - test
+  - build_deploy
+
+variables:
+  GCP_SA_EMAIL: "${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# ---------- Stage 1: Tests (pytest + ruff) ----------
+tests:
+  stage: test
+  image: python:3.11
+  before_script:
+    - python --version
+    - pip install --upgrade pip
+    # Install dependencies for inference + web app
+    - pip install -r app-ml/requirements.txt
+    - pip install -r web_app/requirements.txt
+    # Install tooling
+    - pip install pytest ruff
+  script:
+    # Lint only relevant folders
+    - ruff check app-ml/entrypoint web_app
+    # Run tests (pass folder if you prefer: tests/)
+    - pytest tests/test_inference_api.py
+  artifacts:
+    when: always
+    reports:
+      junit: junit-report.xml
+    paths:
+      - .pytest_cache/
+  only:
+    - main
+    - master
+    - merge_requests
+
+# ---------- Helper: GCP Auth snippet ----------
+# Reusable YAML anchor for gcloud auth
+.gcloud_auth: &gcloud_auth
+  - echo "$GCP_SA_KEY" > /tmp/key.json
+  - gcloud auth activate-service-account "$GCP_SA_EMAIL" --key-file=/tmp/key.json
+  - gcloud config set project "PROJECT_ID"
+
+# ---------- Stage 2: Build & Deploy Inference API ----------
+build_deploy_inference:
+  stage: build_deploy
+  image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+  needs: ["tests"]
+  script:
+    - *gcloud_auth
+    # Build & push inference image via Cloud Build
+    - gcloud builds submit
+        --tag "${GCP_REGION}-docker.pkg.dev/$PROJECT_ID/ml-apps/inference-api:monitoring_endpoint"
+        --config=cloudbuild-inference.yaml
+        .
+    # Deploy to Cloud Run
+    - gcloud run deploy "${INFERENCE_SERVICE_NAME:-inference-api}"
+        --image "${GCP_REGION}-docker.pkg.dev/$PROJECT_ID/ml-apps/inference-api:monitoring_endpoint"
+        --region "${GCP_REGION_INFERENCE:-$GCP_REGION}"
+        --allow-unauthenticated
+        --service-account "$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
+        --memory=2Gi
+        --concurrency=1
+        --set-env-vars REPORT_BUCKET=pennicilin_batch_yield
+  only:
+    - main
+    - master
+
+# ---------- Stage 2: Build & Deploy Web App ----------
+build_deploy_web:
+  stage: build_deploy
+  image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+  needs: ["tests"]
+  script:
+    - *gcloud_auth
+    # Build & push web image (Dockerfile in web_app/)
+    - gcloud builds submit
+        --tag "$GCP_REGION_WEB-docker.pkg.dev/$PROJECT_ID/ml-apps/penicillin-web-app:multistage-build"
+        --config=cloudbuild-web.yaml
+        .
+    # Deploy to Cloud Run
+    - gcloud run deploy "${WEB_SERVICE_NAME:-penicillin-web-app}"
+        --image "$WEB_IMAGE"
+        --region "${GCP_REGION_WEB:-$GCP_REGION}"
+        --allow-unauthenticated
+        --set-env-vars INFERENCE_API_URL="https://inference-api-242173489543.europe-west3.run.app"
+  only:
+    - main
+    - master
