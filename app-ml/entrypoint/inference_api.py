@@ -1,26 +1,29 @@
 import sys
 import os
 import time
-import random
 from flask import Flask, jsonify,request,Response
 from pathlib import Path
-import pandas as pd
-import numpy as np
 from threading import Lock
 
+from common.data_manager import DataManager
+from common.utils import configure_mlflow,read_config
+from common.gcp_functions import upload_predictions_parquet
+
+from pipelines.pipeline_runner import PipelineRunner
+
+
 import mlflow
-from mlflow.exceptions import MlflowException
-from mlflow.tracking import MlflowClient
-from mlflow.models import infer_signature
-from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
+from google.cloud import storage
+
+import logging
+
+
 
 
 from loguru import logger
 from dotenv import load_dotenv
-from functools import lru_cache
 
-from datetime import datetime, timedelta, timezone
-from shapash.explainer.smart_explainer import SmartExplainer
+from datetime import datetime, timezone
 
 
 from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -49,7 +52,6 @@ _LATEST = {
     "predictions_uri": None,
 }
 
-from google.cloud import storage
 
 project_root = Path("/app")
 logger.add(f"{project_root}/inference_runner.log",
@@ -73,14 +75,6 @@ sys.path.append(os.path.join(project_root, 'common'))
 sys.path.append(str(project_root / 'app-ml' /'src'))
 
 
-from common.utils import *
-from common.gcp_functions import *
-from common.data_classes import *
-from common.data_manager import DataManager
-
-
-from pipelines.pipeline_runner import PipelineRunner
-
 
 
 app = Flask(__name__)
@@ -91,12 +85,6 @@ data_manager = DataManager(config)
 
 pipeline_runner = PipelineRunner(config,data_manager)
 
-
-import os
-import logging
-from threading import Lock
-from google.cloud import storage
-from catboost import CatBoostRegressor
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +122,7 @@ def load_model_once():
     experiment_name = os.getenv("MLFLOW_EXPERIMENT_NAME", "/Shared/penicillin time series model")
 
     logger.info("setting up mlflow tracking server")
-    mlflow_client = configure_mlflow(tracking_uri_key=tracking_uri, registry_uri_key=registry_uri,
+    configure_mlflow(tracking_uri_key=tracking_uri, registry_uri_key=registry_uri,
                                      experiment_name=experiment_name)
     logger.info("loading model from mlflow")
 
@@ -237,14 +225,14 @@ def run_inference():
 
         bucket = os.environ["REPORT_BUCKET"]
 
-        logger.info(f"uploading predictions to GCP bucket")
+        logger.info("uploading predictions to GCP bucket")
         predictions_uri = None
         try:
             predictions_uri = upload_predictions_parquet(client=storage_client,bucket_name=bucket
                                     ,prefix="batch_predictions",batch_number=batch_number,
                                    predictions=predictions,
                                    rmse=rmse_score)
-        except Exception as e:
+        except Exception:
             logger.info("predictions could not be uploaded")
 
         #PREDICTIONS_UPLOADED.labels(bucket="pennicilin_batch_yield").inc()

@@ -85,7 +85,6 @@ def configure_mlflow(tracking_uri_key:str,registry_uri_key:str,experiment_name:s
         mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "databricks"))
         mlflow.set_registry_uri(os.getenv("MLFLOW_REGISTRY_URI", "databricks-uc"))
         mlflow.set_experiment(os.getenv("MLFLOW_EXPERIMENT_NAME", "/Shared/penicillin time series model"))
-        return MlflowClient()
 
 
 

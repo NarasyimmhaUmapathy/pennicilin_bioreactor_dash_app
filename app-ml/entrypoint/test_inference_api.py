@@ -1,21 +1,20 @@
 import sys
 import os
-import random
 from pathlib import Path
-import pandas as pd
 import numpy as np
 from flask.cli import load_dotenv
 from loguru import logger
-from catboost import CatBoostRegressor
 
 from google.oauth2 import service_account
 from google.cloud import storage
 
 import mlflow
-from mlflow.exceptions import MlflowException
-from mlflow.tracking import MlflowClient
-from mlflow.models import infer_signature
-from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
+from threading import Lock
+
+
+from pipelines.pipeline_runner import PipelineRunner
+from common.data_manager import DataManager
+from common.utils import read_config, configure_mlflow
 
 
 #project_root = Path("/app")
@@ -27,16 +26,8 @@ sys.path.append(str(project_root))
 sys.path.append(os.path.join(project_root, 'common'))
 sys.path.append(str(project_root / 'app-ml' /'src'))
 
-from threading import Lock
 
-from common.utils import read_config, configure_mlflow, time_series_split
 
-from common.gcp_functions import parse_gcs_uri,upload_file_to_gcs
-from pipelines.pipeline_runner import PipelineRunner
-from common.data_manager import DataManager,NumpyEncoder
-
-import pyarrow.parquet as pq
-from loguru import logger
 
 logger.add(f"{project_root}/logs/test_api.log",
          rotation="00:00",        # New file daily
