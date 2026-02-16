@@ -2,12 +2,10 @@ import dash
 from dash import html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import datetime
 import numpy as np
-from sklearn.metrics import root_mean_squared_error
 
 from utils.api_client import  get_predictions
-from utils.plotting import build_prediction_figure_finance
 
 from loguru import logger
 

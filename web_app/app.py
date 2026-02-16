@@ -1,7 +1,6 @@
 import dash
-from dash import Dash, html, dcc
+from dash import Dash
 import dash_bootstrap_components as dbc
-import os
 
 
 # Create Dash app with multi-page routing enabled
