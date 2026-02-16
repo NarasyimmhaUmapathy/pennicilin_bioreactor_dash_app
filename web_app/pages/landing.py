@@ -207,7 +207,7 @@ layout = dbc.Container(
                                             html.Li("Drift reports are generated during inference and made available in the UI, and stored in Cloud Storage."),
                                             html.Li("Services are containerized and deployed on Google Cloud Run, with artifacts stored in Cloud Storage."),
                                             html.Li("The research paper which served as an inspiration for this project can be found here:"),
-                                            html.Li("https://www.sciencedirect.com/science/article/pii/S0098135418305106"),
+                                            "https://www.sciencedirect.com/science/article/pii/S0098135418305106",
 
                                         ],
                                         className="mb-2",

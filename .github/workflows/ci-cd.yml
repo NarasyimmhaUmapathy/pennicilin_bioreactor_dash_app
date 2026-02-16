@@ -1,0 +1,136 @@
+name: CI/CD (Cloud Run)
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - 'app-ml/**'
+      - 'web_app/**'
+      - 'cloudbuild-*.yml'
+      - '**.sh'
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  PYTHON_VERSION: "3.11"
+  INFERENCE_IMAGE: "europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ml-apps/inference-api:monitoring_endpoint"
+  WEB_IMAGE: "europe-west1-docker.pkg.dev/${{secrets.GCP_PROJECT_ID }}/ml-apps/penicillin-web-app:multistage-build"
+  REPORT_BUCKET: "pennicilin_batch_yield"
+
+
+jobs:
+  changes:
+      runs-on: ubuntu-latest
+      outputs:
+        inference: ${{ steps.filter.outputs.inference }}
+        web: ${{ steps.filter.outputs.web }}
+      steps:
+        - uses: actions/checkout@v4
+        - uses: dorny/paths-filter@v3
+          id: filter
+          with:
+            filters: |
+              inference:
+                - "app-ml/**"
+                - "common/**"
+                - "build_inference_image_gcp.sh"
+                - "inference.Dockerfile"
+              web_app:
+                - "web_app/**"
+                - "common/**"
+                - "cloudbuild-web*.yaml"
+                - "web_app/test.Dockerfile"
+
+  test:
+    name: Lint + Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app-ml/requirements.txt
+          pip install -r web_app/requirements.txt
+          pip install ruff pytest
+
+      - name: Ruff
+        run: |
+          ruff check app-ml/entrypoint web_app
+
+      - name: Pytest
+        run: |
+          pytest -q
+
+  deploy:
+    name: Build + Deploy (Cloud Run)
+    runs-on: ubuntu-latest
+    needs: [ changes,test ]
+    if: github.ref == 'refs/heads/master'
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---- Auth to GCP using a service account key (simple approach) ----
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure project + region
+        run: |
+          gcloud config set project "${{ secrets.GCP_PROJECT_ID }}"
+          gcloud config set run/region "${{ secrets.GCP_REGION }}"
+
+
+      # =========================
+      # Deploy Inference API
+      # =========================
+      - name: Build inference image
+        if: needs.changes.outputs.inference == 'true'
+
+        run: |
+          gcloud builds submit --tag "${{ env.INFERENCE_IMAGE }}"   .
+
+      - name: Deploy inference service
+        if: needs.changes.outputs.inference == 'true'
+
+        run: |
+          gcloud run deploy inference-api \
+            --image ${{ env.INFERENCE_IMAGE }} \
+            --allow-unauthenticated \
+            --memory=2Gi \
+            --cpu=2 \
+            --concurrency=1 \
+            --set-env-vars "REPORT_BUCKET=${{ env.REPORT_BUCKET }}"
+
+      # =========================
+      # Deploy Web App
+      # =========================
+      - name: Build web image
+        if: needs.changes.outputs.web_app == 'true'
+        run: |
+          gcloud builds submit --config cloudbuild-web-app.yaml .
+
+      - name: Deploy web service
+        if: needs.changes.outputs.web_app == 'true'
+        run: |
+          gcloud run deploy penicillin-web-app \
+            --image ${{ env.WEB_IMAGE }} \
+            --allow-unauthenticated \
+            --set-env-vars "INFERENCE_API_URL=${{ secrets.INFERENCE_API_URL }}"
