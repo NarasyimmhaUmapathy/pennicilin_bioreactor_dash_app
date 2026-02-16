@@ -2,7 +2,7 @@
 
 ## A production-style MLOps project that predicts penicillin concentration during batch runs and monitors model/data drift in real time.
 
-![Web App](images/app-ui.png)
+![Web App](images/app_ui.png)
 
 ---
 
