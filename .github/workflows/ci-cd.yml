@@ -8,7 +8,6 @@ on:
       - 'web_app/**'
       - 'cloudbuild-*.yml'
       - '**.sh'
-      - 'tests/'
   pull_request:
     branches: [ "master" ]
 
