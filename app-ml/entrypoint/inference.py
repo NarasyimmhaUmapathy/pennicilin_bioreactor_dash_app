@@ -12,15 +12,17 @@ import sys
 from pathlib import Path
 import pandas as pd
 
+from common.utils import read_config, plot_predictions_vs_actual
+from pipelines.pipeline_runner import PipelineRunner
+from common.data_manager import DataManager
+
+
 #project_root = Path(__file__).resolve().parents[2]
 project_root = Path("app/")
 #os.chdir(project_root)
 sys.path.append(str(project_root))
 sys.path.append(str(project_root / 'app-ml' /'src'))
 
-from common.utils import read_config, plot_predictions_vs_actual
-from pipelines.pipeline_runner import PipelineRunner
-from common.data_manager import DataManager
 
 
 if __name__ == "__main__":
