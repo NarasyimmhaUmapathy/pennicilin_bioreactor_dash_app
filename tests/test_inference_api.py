@@ -43,7 +43,7 @@ for b in test_batches:
     assert r.status_code == 200
     assert data["num_predictions"] > 800
     assert data["root mean squared error score"] > 0
-    assert data["root mean squared error score"] < 1 #set to max allowed rmse score
+    assert data["root mean squared error score"] < 0.3 #set to max allowed rmse score
     assert data["status"] == "success"
     assert type(data["aeration_drift_detected"]) == bool
     assert type(data["substrate_flow_rate_drift_detected"]) == bool
