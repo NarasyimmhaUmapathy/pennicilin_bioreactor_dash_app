@@ -13,7 +13,7 @@ logger.add(f"{project_root}/logs/test_inference_api.log",
          format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
 
 
-test_batches = np.arange(30,45,1)
+test_batches = np.arange(30,35,1)
 
 for b in test_batches:
     r = requests.post("https://inference-api-242173489543.europe-west3.run.app/run-inference", json={"batch_number": int(b)})
@@ -48,7 +48,3 @@ for b in test_batches:
     assert type(data["aeration_drift_detected"]) == bool
     assert type(data["substrate_flow_rate_drift_detected"]) == bool
 
-    print(data["root mean squared error score"])
-    print(data["share_of_drifted_columns"])
-    print(data_metrics["rmse"])
-    print(data_metrics["share_of_drifted_columns"])

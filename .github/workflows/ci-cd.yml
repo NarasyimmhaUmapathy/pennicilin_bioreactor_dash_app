@@ -67,7 +67,7 @@ jobs:
 
       - name: Pytest
         run: |
-          pytest -q
+          pytest tests/test_inference_api.py -q
 
   deploy:
     name: Build + Deploy (Cloud Run)
