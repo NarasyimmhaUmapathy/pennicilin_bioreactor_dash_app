@@ -27,6 +27,7 @@ The result is a deployable web application that a non-technical user can open in
 - Whether incoming sensor patterns look “unusual” compared to normal operation, as these influence the resulting batch yield
 - Whether model accuracy or data quality is degrading over time
 - The company needs to ensure stable batch and optimum batch yields by stopping the batch run at the maximum possible pennicilin concentration in the bioreactor
+- What process parameters can be key indicators of a below optimum batch yield?
 
 **Solution:** A real-time ML system that:
 - predicts the concentration curve for a selected batch
