@@ -30,10 +30,12 @@ The result is a deployable web application that a non-technical user can open in
 - What process parameters can be key indicators of a below optimum batch yield?
 
 **Solution:** A real-time ML system that:
-- predicts the concentration curve for a selected batch
+- predicts the concentration curve for a selected batch 3 time units in advance (36 minutes). Previously, the actual concentration or potential yield was only known every      12 minutes.
 - surfaces an interpretable prediction visualization in a UI
 - logs monitoring signals and drift metrics automatically
 - produces drift reports for auditing and investigations
+- detects drift in realtime to enable continous model retraining, or allow model retraining strategies to be implemented when a certain drift threshold for X number of features is reached. The type of drift detection and feature specific thresholds can be manually specified
+- Bioreactor usage can be optimized, as batch runs can be terminated earlier once a specified yield concentration has been reached, allowing for a next batch run to be started. This also reduces the amount of raw materials and energy costs being needed per batch run
 
 ---
 
