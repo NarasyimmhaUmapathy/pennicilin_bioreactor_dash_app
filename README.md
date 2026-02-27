@@ -49,7 +49,7 @@ The result is a deployable web application that a non-technical user can open in
   - drift report URI (HTML stored in GCS)
 - `/metrics` exposes Prometheus metrics
 - `/health` basic health check
-- (Optional) `/latest_monitoring_metrics` to read last computed metrics **without re-running inference**
+- `/latest_monitoring_metrics` to read last computed metrics **without re-running inference**
 
 ### 📈 Web Application (Dash)
 - **Predictions page**:
@@ -57,10 +57,10 @@ The result is a deployable web application that a non-technical user can open in
   - triggers inference
   - plots predicted concentration curve and KPI summaries
 - **Monitoring page**:
-  - embeds Grafana dashboards (public dashboard URL or embed link)
+  - embeds Grafana dashboards (served through grafana service deployed separately)
   - shows quick “status badges” (RMSE, drift share, feature drift)
 - **Drift report page**:
-  - loads latest Evidently report from GCS (via signed URL or public object)
+  - loads latest Evidently report from Cloud Storage Bucket
 
 ### 📊 Monitoring (Prometheus + Grafana)
 - Prometheus scrapes inference API metrics
